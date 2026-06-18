@@ -1,6 +1,10 @@
-﻿node_modules
+﻿node_modules/
 .env
 .DS_Store
-hello
+hello/
 *_backup*
 package-lock.json
+Caddyfile
+Dockerfile
+railway.toml
+Procfile
