@@ -151,16 +151,45 @@
     </section>
 
     <section id="settings" class="page hidden">
+  <div class="settings-hero">
+    <div>
       <h1>Sozlamalar</h1>
-      <div class="settings-card">
-        <h2>Tashqi ko'rinish</h2>
+      <p>Login, parol va dizayn sozlamalari</p>
+    </div>
+  </div>
+
+  <div class="settings-grid">
+    <div class="settings-card modern">
+      <h2>Login va parol</h2>
+
+      <label>Yangi login</label>
+      <input id="newLogin" type="text" placeholder="Yangi login">
+
+      <label>Yangi parol</label>
+      <input id="newPassword" type="password" placeholder="Yangi parol">
+
+      <label>Parolni takrorlang</label>
+      <input id="repeatPassword" type="password" placeholder="Parolni qayta kiriting">
+
+      <button onclick="changeLoginPassword()">Saqlash</button>
+      <p id="settingsMsg"></p>
+    </div>
+
+    <div class="settings-card modern">
+      <h2>Dizayn</h2>
+      <p>Sayt rangini almashtirish</p>
+
+      <div class="theme-buttons">
         <button onclick="setTheme('light')">Light Mode</button>
         <button onclick="setTheme('dark')">Dark Mode</button>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
   </main>
 </div>
 
 <script src="script.js"></script>
 </body>
 </html>
+

@@ -1,4 +1,4 @@
-﻿const USERS = [
+﻿let USERS = JSON.parse(localStorage.getItem("crm_users")) || [
   {login:"admin", password:"12345", name:"Admin", role:"Administrator"},
   {login:"direktor", password:"12345", name:"Direktor", role:"Direktor"}
 ];
@@ -230,3 +230,52 @@ if(localStorage.getItem("theme") === "dark"){
 }
 
 setInterval(updateDashboard,1000);
+
+function changeLoginPassword(){
+  const newLogin = document.getElementById("newLogin").value.trim();
+  const newPassword = document.getElementById("newPassword").value.trim();
+  const repeatPassword = document.getElementById("repeatPassword").value.trim();
+  const msg = document.getElementById("settingsMsg");
+
+  if(!currentUser){
+    msg.textContent = "Avval tizimga kiring.";
+    msg.className = "error-msg";
+    return;
+  }
+
+  if(newLogin.length < 3){
+    msg.textContent = "Login kamida 3 ta belgi bo'lishi kerak.";
+    msg.className = "error-msg";
+    return;
+  }
+
+  if(newPassword.length < 4){
+    msg.textContent = "Parol kamida 4 ta belgi bo'lishi kerak.";
+    msg.className = "error-msg";
+    return;
+  }
+
+  if(newPassword !== repeatPassword){
+    msg.textContent = "Parollar mos emas.";
+    msg.className = "error-msg";
+    return;
+  }
+
+  const userIndex = USERS.findIndex(u => u.role === currentUser.role);
+
+  if(userIndex !== -1){
+    USERS[userIndex].login = newLogin;
+    USERS[userIndex].password = newPassword;
+    localStorage.setItem("crm_users", JSON.stringify(USERS));
+
+    currentUser.login = newLogin;
+    currentUser.password = newPassword;
+
+    document.getElementById("newLogin").value = "";
+    document.getElementById("newPassword").value = "";
+    document.getElementById("repeatPassword").value = "";
+
+    msg.textContent = "Login va parol muvaffaqiyatli o'zgartirildi.";
+    msg.className = "success-msg";
+  }
+}
