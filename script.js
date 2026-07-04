@@ -1,35 +1,40 @@
-﻿let ADMIN_LOGIN = localStorage.getItem("admin_login") || "admin";
-let ADMIN_PASSWORD = localStorage.getItem("admin_password") || "12345";
+﻿const USERS = [
+  {login:"admin", password:"12345", name:"Admin", role:"Administrator"},
+  {login:"direktor", password:"12345", name:"Direktor", role:"Direktor"}
+];
 
-function formatMoney(value){
-  let number = Number(value || 0);
-  return number.toLocaleString("uz-UZ", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }) + " so'm";
+let currentUser = null;
+let students = JSON.parse(localStorage.getItem("crm_students")) || [];
+let teachers = JSON.parse(localStorage.getItem("crm_teachers")) || [];
+
+function save(){
+  localStorage.setItem("crm_students", JSON.stringify(students));
+  localStorage.setItem("crm_teachers", JSON.stringify(teachers));
 }
 
-let students = JSON.parse(localStorage.getItem("students_payment")) || [];
-
-const loginPage = document.getElementById("loginPage");
-const app = document.getElementById("app");
-const form = document.getElementById("studentForm");
-const saveBtn = document.getElementById("saveBtn");
-
-function loginAdmin(){
+function loginUser(){
   const login = document.getElementById("login").value.trim();
   const password = document.getElementById("password").value.trim();
+  const user = USERS.find(u => u.login === login && u.password === password);
 
-  if(login === ADMIN_LOGIN && password === ADMIN_PASSWORD){
-    loginPage.classList.add("hidden");
-    app.classList.remove("hidden");
-    showPage("dashboard");
-  }else{
-    document.getElementById("loginError").textContent = "Login yoki parol noto'g'ri!";
+  if(!user){
+    loginError.textContent = "Login yoki parol noto'g'ri!";
+    return;
   }
+
+  currentUser = user;
+  loginPage.classList.add("hidden");
+  app.classList.remove("hidden");
+
+  profileName.textContent = user.name;
+  profileRole.textContent = user.role;
+  avatarLetter.textContent = user.name[0];
+  panelTitle.textContent = user.role + " Panel";
+
+  showPage("dashboard");
 }
 
-function logoutAdmin(){
+function logoutUser(){
   app.classList.add("hidden");
   loginPage.classList.remove("hidden");
 }
@@ -37,256 +42,191 @@ function logoutAdmin(){
 function showPage(id){
   document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
   document.getElementById(id).classList.remove("hidden");
-  showStudents();
-  showDebtors();
   updateDashboard();
+  renderStudents();
+  renderTeachers();
+  renderReports();
 }
 
-function save(){
-  localStorage.setItem("students_payment", JSON.stringify(students));
+studentForm.addEventListener("submit", e => {
+  e.preventDefault();
+  students.push({
+    name:sName.value.trim(),
+    surname:sSurname.value.trim(),
+    cls:sClass.value.trim(),
+    phone:sPhone.value.trim(),
+    status:sStatus.value,
+    date:new Date().toLocaleDateString("uz-UZ")
+  });
+  save();
+  studentForm.reset();
+  showPage("students");
+});
+
+teacherForm.addEventListener("submit", e => {
+  e.preventDefault();
+  teachers.push({
+    name:tName.value.trim(),
+    subject:tSubject.value.trim(),
+    phone:tPhone.value.trim()
+  });
+  save();
+  teacherForm.reset();
+  showPage("teachers");
+});
+
+function renderStudents(){
+  if(!studentList) return;
+
+  const q = (studentSearch?.value || "").toLowerCase();
+  const f = studentFilter?.value || "all";
+
+  const data = students.filter(s =>
+    (f === "all" || s.status === f) &&
+    (s.name.toLowerCase().includes(q) ||
+     s.surname.toLowerCase().includes(q) ||
+     s.cls.toLowerCase().includes(q))
+  );
+
+  studentList.innerHTML = data.length ? data.map((s,i)=>`
+    <tr>
+      <td>${s.name}</td>
+      <td>${s.surname}</td>
+      <td>${s.cls}</td>
+      <td>${s.phone}</td>
+      <td><span class="${s.status === "Aktiv" ? "active" : "inactive"}">${s.status}</span></td>
+      <td><button class="delete" onclick="deleteStudent(${i})">O'chirish</button></td>
+    </tr>
+  `).join("") : `<tr><td colspan="6">Ma'lumot yo'q</td></tr>`;
+}
+
+function renderTeachers(){
+  if(!teacherList) return;
+
+  const q = (teacherSearch?.value || "").toLowerCase();
+  const data = teachers.filter(t =>
+    t.name.toLowerCase().includes(q) ||
+    t.subject.toLowerCase().includes(q)
+  );
+
+  teacherList.innerHTML = data.length ? data.map((t,i)=>`
+    <tr>
+      <td>${t.name}</td>
+      <td>${t.subject}</td>
+      <td>${t.phone}</td>
+      <td><button class="delete" onclick="deleteTeacher(${i})">O'chirish</button></td>
+    </tr>
+  `).join("") : `<tr><td colspan="4">Ma'lumot yo'q</td></tr>`;
+}
+
+function deleteStudent(i){
+  if(confirm("O'quvchi o'chirilsinmi?")){
+    students.splice(i,1);
+    save();
+    renderStudents();
+    updateDashboard();
+  }
+}
+
+function deleteTeacher(i){
+  if(confirm("O'qituvchi o'chirilsinmi?")){
+    teachers.splice(i,1);
+    save();
+    renderTeachers();
+    updateDashboard();
+  }
 }
 
 function updateDashboard(){
-  document.getElementById("totalStudents").textContent = students.length;
-
-  const paid = students.filter(s => s.tolovStatus === "Tolangan");
-  const unpaid = students.filter(s => s.tolovStatus === "Tolanmagan");
-
-  const totalPayment = students.reduce((sum, s) => sum + Number(s.oylikTolov || 0), 0);
-  const paidMoney = paid.reduce((sum, s) => sum + Number(s.oylikTolov || 0), 0);
-  const debtMoney = unpaid.reduce((sum, s) => sum + Number(s.oylikTolov || 0), 0);
-
-  document.getElementById("paidStudents").textContent = paid.length;
-  document.getElementById("unpaidStudents").textContent = unpaid.length;
-
   const active = students.filter(s => s.status === "Aktiv").length;
   const inactive = students.filter(s => s.status === "No Aktiv").length;
+  const classes = [...new Set(students.map(s => s.cls))];
 
-  document.getElementById("activeStudents").textContent = active;
-  document.getElementById("inactiveStudents").textContent = inactive;
-  document.getElementById("totalPayment").textContent = formatMoney(totalPayment);
-  document.getElementById("paidMoney").textContent = formatMoney(paidMoney);
-  document.getElementById("debtMoney").textContent = formatMoney(debtMoney);
+  totalStudents.textContent = students.length;
+  totalTeachers.textContent = teachers.length;
+  activeStudents.textContent = active;
+  inactiveStudents.textContent = inactive;
 
-  let lastStudent = document.getElementById("lastStudent");
+  dirStudents.textContent = students.length;
+  dirTeachers.textContent = teachers.length;
+  dirClasses.textContent = classes.length;
+  dirPercent.textContent = students.length ? Math.round(active * 100 / students.length) + "%" : "0%";
 
-  if(lastStudent){
-    if(students.length > 0){
-      let last = students[students.length - 1];
-      lastStudent.textContent = last.ism + " " + last.familiya;
-    }else{
-      lastStudent.textContent = "Yo'q";
-    }
-  }
+  dateTime.textContent = new Date().toLocaleString("uz-UZ");
 
-  let paidPercentValue = students.length ? Math.round((paid.length * 100) / students.length) : 0;
-
-  let paidProgress = document.getElementById("paidProgress");
-  let paidPercent = document.getElementById("paidPercent");
-
-  if(paidProgress){
-    paidProgress.style.width = paidPercentValue + "%";
-  }
-
-  if(paidPercent){
-    paidPercent.textContent = paidPercentValue + "%";
-  }
-
-  const now = new Date();
-  document.getElementById("dateTime").textContent =
-    now.toLocaleDateString("uz-UZ") + " | " + now.toLocaleTimeString("uz-UZ",{hour:"2-digit",minute:"2-digit"});
+  drawChart(active, inactive, teachers.length);
 }
 
-function showStudents(data = students){
-  const tbody = document.getElementById("studentList");
-  tbody.innerHTML = "";
+function drawChart(active, inactive, teacherCount){
+  const canvas = document.getElementById("mainChart");
+  if(!canvas) return;
 
-  if(data.length === 0){
-    tbody.innerHTML = `<tr><td colspan="7">Hozircha o'quvchi yo'q</td></tr>`;
-    updateDashboard();
-    return;
-  }
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,700,260);
 
-  data.forEach((s, index) => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${s.ism}</td>
-        <td>${s.familiya}</td>
-        <td>${s.sinf}</td>
-        <td>${s.telefon}</td>
-        <td>${formatMoney(s.oylikTolov)}</td>
-        <td>
-          ${
-            s.status === "Aktiv"
-            ? '<span class="active-badge">Aktiv</span>'
-            : '<span class="inactive-badge">No Aktiv</span>'
-          }
-        </td>
-        <td>
-          ${
-            s.tolovStatus === "Tolangan"
-            ? '<span class="paid">To\'langan</span>'
-            : '<span class="unpaid">To\'lanmagan</span>'
-          }
-        </td>
-        <td>
-          <button class="edit" onclick="editStudent(${index})">Tahrirlash</button>
-          <button class="delete" onclick="deleteStudent(${index})">O'chirish</button>
-        </td>
-      </tr>
-    `;
-  });
+  const items = [
+    ["Aktiv", active],
+    ["No Aktiv", inactive],
+    ["O'qituvchi", teacherCount]
+  ];
 
-  updateDashboard();
-}
-
-function showDebtors(){
-  const tbody = document.getElementById("debtorList");
-  const debtors = students.filter(s => s.tolovStatus === "Tolanmagan");
-
-  tbody.innerHTML = "";
-
-  if(debtors.length === 0){
-    tbody.innerHTML = `<tr><td colspan="5">Qarzdor o'quvchilar yo'q</td></tr>`;
-    return;
-  }
-
-  debtors.forEach(s => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${s.ism}</td>
-        <td>${s.familiya}</td>
-        <td>${s.sinf}</td>
-        <td>${s.telefon}</td>
-        <td>${formatMoney(s.oylikTolov)}</td>
-      </tr>
-    `;
+  items.forEach((item, i)=>{
+    const x = 80 + i * 190;
+    const h = item[1] * 35 + 20;
+    ctx.fillRect(x, 220 - h, 90, h);
+    ctx.fillText(item[0], x, 245);
+    ctx.fillText(item[1], x + 35, 210 - h);
   });
 }
 
-form.addEventListener("submit", function(e){
-  e.preventDefault();
+function renderReports(){
+  if(!reportBox) return;
+  reportBox.innerHTML = `
+    <h2>Umumiy hisobot</h2>
+    <p>Jami o'quvchilar: <b>${students.length}</b></p>
+    <p>Jami o'qituvchilar: <b>${teachers.length}</b></p>
+    <p>Aktiv o'quvchilar: <b>${students.filter(s=>s.status==="Aktiv").length}</b></p>
+    <p>No Aktiv: <b>${students.filter(s=>s.status==="No Aktiv").length}</b></p>
+  `;
+}
 
-  const editIndex = document.getElementById("editIndex").value;
+function exportCSV(){
+  let csv = "Ism,Familiya,Sinf,Telefon,Status\n";
+  students.forEach(s => {
+    csv += `${s.name},${s.surname},${s.cls},${s.phone},${s.status}\n`;
+  });
 
-  const student = {
-    ism: document.getElementById("ism").value.trim(),
-    familiya: document.getElementById("familiya").value.trim(),
-    sinf: document.getElementById("sinf").value.trim(),
-    telefon: document.getElementById("telefon").value.trim(),
-    oylikTolov: document.getElementById("oylikTolov").value.trim(),
-    status: document.getElementById("status").value,
-    tolovStatus: document.getElementById("tolovStatus").value
+  const blob = new Blob([csv], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "oquvchilar.csv";
+  a.click();
+}
+
+function importCSV(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(){
+    const lines = reader.result.split("\n").slice(1);
+    lines.forEach(line => {
+      const [name,surname,cls,phone,status] = line.split(",");
+      if(name) students.push({name,surname,cls,phone,status:status || "Aktiv"});
+    });
+    save();
+    showPage("students");
   };
-
-  if(editIndex === ""){
-    students.push(student);
-  }else{
-    students[editIndex] = student;
-    document.getElementById("editIndex").value = "";
-    saveBtn.textContent = "O'quvchi qo'shish";
-  }
-
-  save();
-  form.reset();
-  showStudents();
-  showDebtors();
-  updateDashboard();
-});
-
-function editStudent(index){
-  const s = students[index];
-
-  document.getElementById("ism").value = s.ism;
-  document.getElementById("familiya").value = s.familiya;
-  document.getElementById("sinf").value = s.sinf;
-  document.getElementById("telefon").value = s.telefon;
-  document.getElementById("oylikTolov").value = s.oylikTolov;
-  document.getElementById("status").value = s.status || "Aktiv";
-  document.getElementById("tolovStatus").value = s.tolovStatus;
-  document.getElementById("editIndex").value = index;
-
-  saveBtn.textContent = "Saqlash";
-  showPage("students");
+  reader.readAsText(file);
 }
 
-function deleteStudent(index){
-  if(confirm("O'chirmoqchimisiz?")){
-    students.splice(index, 1);
-    save();
-    showStudents();
-    showDebtors();
-    updateDashboard();
-  }
+function setTheme(theme){
+  document.body.className = theme === "dark" ? "dark" : "";
+  localStorage.setItem("theme", theme);
 }
 
-function clearAll(){
-  if(confirm("Barcha ma'lumotlar o'chirilsinmi?")){
-    students = [];
-    save();
-    showStudents();
-    showDebtors();
-    updateDashboard();
-  }
+if(localStorage.getItem("theme") === "dark"){
+  document.body.className = "dark";
 }
 
-function searchStudent(){
-  const value = document.getElementById("search").value.toLowerCase();
-
-  const result = students.filter(s =>
-    s.ism.toLowerCase().includes(value) ||
-    s.familiya.toLowerCase().includes(value) ||
-    s.sinf.toLowerCase().includes(value) ||
-    s.telefon.toLowerCase().includes(value) ||
-    s.tolovStatus.toLowerCase().includes(value)
-  );
-
-  showStudents(result);
-}
-
-document.getElementById("search").addEventListener("input", searchStudent);
-
-updateDashboard();
 setInterval(updateDashboard,1000);
-
-
-
-
-
-function changeAdminCredentials(){
-  const newLogin = document.getElementById("newAdminLogin").value.trim();
-  const newPassword = document.getElementById("newAdminPassword").value.trim();
-  const repeatPassword = document.getElementById("repeatAdminPassword").value.trim();
-  const message = document.getElementById("settingsMessage");
-
-  if(newLogin.length < 3){
-    message.textContent = "Login kamida 3 ta belgidan iborat bo'lishi kerak.";
-    message.className = "error-msg";
-    return;
-  }
-
-  if(newPassword.length < 4){
-    message.textContent = "Parol kamida 4 ta belgidan iborat bo'lishi kerak.";
-    message.className = "error-msg";
-    return;
-  }
-
-  if(newPassword !== repeatPassword){
-    message.textContent = "Parollar mos emas.";
-    message.className = "error-msg";
-    return;
-  }
-
-  localStorage.setItem("admin_login", newLogin);
-  localStorage.setItem("admin_password", newPassword);
-
-  ADMIN_LOGIN = newLogin;
-  ADMIN_PASSWORD = newPassword;
-
-  document.getElementById("newAdminLogin").value = "";
-  document.getElementById("newAdminPassword").value = "";
-  document.getElementById("repeatAdminPassword").value = "";
-
-  message.textContent = "Login va parol muvaffaqiyatli o'zgartirildi.";
-  message.className = "success-msg";
-}

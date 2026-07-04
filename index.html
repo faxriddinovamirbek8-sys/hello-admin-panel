@@ -2,182 +2,160 @@
 <html lang="uz">
 <head>
   <meta charset="UTF-8">
-  <title>O'quvchilar va To'lovlar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School CRM Pro</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="loginPage" class="login-page">
   <div class="login-card">
-    <h1>Admin Login</h1>
-    <p>Admin panelga kirish</p>
-    <input id="login" type="text" placeholder="Login">
+    <h1>School CRM</h1>
+    <p>Admin yoki direktor sifatida kiring</p>
+    <input id="login" placeholder="Login">
     <input id="password" type="password" placeholder="Parol">
-    <button onclick="loginAdmin()">Kirish</button>
+    <button onclick="loginUser()">Kirish</button>
     <div id="loginError"></div>
   </div>
 </div>
 
 <div id="app" class="app hidden">
   <aside class="sidebar">
-    <h2>School CRM</h2>
+    <h2 id="panelTitle">School CRM</h2>
+
     <button onclick="showPage('dashboard')">Dashboard</button>
     <button onclick="showPage('students')">O'quvchilar</button>
-    <button onclick="showPage('debtors')">Qarzdorlar</button>
+    <button onclick="showPage('teachers')">O'qituvchilar</button>
+    <button onclick="showPage('director')">Direktor</button>
+    <button onclick="showPage('reports')">Hisobotlar</button>
     <button onclick="showPage('settings')">Sozlamalar</button>
-    <button onclick="clearAll()">Bazani tozalash</button>
-    <button class="logout" onclick="logoutAdmin()">Chiqish</button>
-  
 
+    <button class="logout" onclick="logoutUser()">Chiqish</button>
 
-<div class="admin-profile">
-    <div class="avatar">A</div>
-
-    <div class="profile-info">
-        <h3>Amirbek</h3>
-        <p>Administrator</p>
-        <span class="online-status">🟢 Online</span>
+    <div class="admin-profile">
+      <div class="avatar" id="avatarLetter">A</div>
+      <h3 id="profileName">Admin</h3>
+      <p id="profileRole">Administrator</p>
+      <span>Online</span>
     </div>
-</div>
-
-</aside>
+  </aside>
 
   <main class="main">
-
     <section id="dashboard" class="page">
       <div class="hero">
         <div>
           <h1>Dashboard</h1>
-          <p>O'quvchilar va oylik to'lovlar boshqaruvi</p>
+          <p>Zamonaviy maktab boshqaruv paneli</p>
           <b id="dateTime"></b>
         </div>
-        <button onclick="showPage('students')">+ O'quvchi qo'shish</button>
+        <button onclick="showPage('students')">+ O'quvchi</button>
       </div>
 
-      <h2 class="section-subtitle">Umumiy statistika</h2>
       <div class="cards">
         <div class="card"><h3>Jami o'quvchilar</h3><b id="totalStudents">0</b></div>
-        <div class="card"><h3>To'laganlar</h3><b id="paidStudents">0</b></div>
-        <div class="card"><h3>Qarzdorlar</h3><b id="unpaidStudents">0</b></div>
-        <div class="card"><h3>Aktiv o'quvchilar</h3><b id="activeStudents">0</b></div>
+        <div class="card"><h3>O'qituvchilar</h3><b id="totalTeachers">0</b></div>
+        <div class="card"><h3>Aktiv</h3><b id="activeStudents">0</b></div>
         <div class="card"><h3>No Aktiv</h3><b id="inactiveStudents">0</b></div>
-        <div class="card"><h3>Jami oylik</h3><b id="totalPayment">0</b></div>
-        <div class="card"><h3>To'langan summa</h3><b id="paidMoney">0</b></div>
-        <div class="card"><h3>Qarz summa</h3><b id="debtMoney">0</b></div>
-
-        <div class="card">
-          <h3>Oxirgi qo'shilgan</h3>
-          <b id="lastStudent">Yo'q</b>
-        </div>
       </div>
-    <div class="dashboard-bottom">
-        <div class="summary-box">
-          <h2>To'lov holati</h2>
-          <div class="progress-wrap">
-            <div class="progress-line">
-              <span id="paidProgress"></span>
-            </div>
-            <p><b id="paidPercent">0%</b> o'quvchilar to'lov qilgan</p>
-          </div>
-        </div>
 
-        <div class="summary-box">
-          <h2>Tezkor amallar</h2>
-          <div class="quick-buttons">
-            <button onclick="showPage('students')">+ O'quvchi qo'shish</button>
-            <button onclick="showPage('debtors')">Qarzdorlarni ko'rish</button>
-          </div>
-        </div>
+      <div class="chart-box">
+        <h2>Grafikalar</h2>
+        <canvas id="mainChart" width="700" height="260"></canvas>
       </div>
     </section>
 
     <section id="students" class="page hidden">
       <div class="top">
-        <h1>O'quvchilar ro'yxati</h1>
-        <div class="search-box">
-          <input id="search" type="text" placeholder="Qidirish...">
-          <button onclick="searchStudent()">Qidirish</button>
+        <h1>O'quvchilar</h1>
+        <div class="tools">
+          <input id="studentSearch" placeholder="Qidirish..." oninput="renderStudents()">
+          <select id="studentFilter" onchange="renderStudents()">
+            <option value="all">Hammasi</option>
+            <option value="Aktiv">Aktiv</option>
+            <option value="No Aktiv">No Aktiv</option>
+          </select>
         </div>
       </div>
 
       <form id="studentForm" class="form-card">
-        <input type="hidden" id="editIndex">
-        <input id="ism" type="text" placeholder="Ism" required>
-        <input id="familiya" type="text" placeholder="Familiya" required>
-        <input id="sinf" type="text" placeholder="Sinf / Guruh" required>
-        <input id="telefon" type="text" placeholder="Telefon">
-        <input id="oylikTolov" type="number" placeholder="Oylik to'lov summasi" required>
-        <select id="status">
+        <input id="sName" placeholder="Ism" required>
+        <input id="sSurname" placeholder="Familiya" required>
+        <input id="sClass" placeholder="Sinf / Guruh" required>
+        <input id="sPhone" placeholder="Telefon">
+        <select id="sStatus">
           <option value="Aktiv">Aktiv</option>
           <option value="No Aktiv">No Aktiv</option>
         </select>
-
-        <select id="tolovStatus">
-          <option value="Tolangan">To'langan</option>
-          <option value="Tolanmagan">To'lanmagan</option>
-        </select>
-
-        <button id="saveBtn" type="submit">O'quvchi qo'shish</button>
+        <button>O'quvchi qo'shish</button>
       </form>
 
       <div class="table-card">
         <table>
           <thead>
-            <tr>
-              <th>Ism</th>
-              <th>Familiya</th>
-              <th>Sinf</th>
-              <th>Telefon</th>
-              <th>Oylik to'lov</th>
-              <th>Davomat</th>
-              <th>To'lov status</th>
-              <th>Amal</th>
-            </tr>
+            <tr><th>Ism</th><th>Familiya</th><th>Sinf</th><th>Telefon</th><th>Status</th><th>Amal</th></tr>
           </thead>
           <tbody id="studentList"></tbody>
         </table>
       </div>
     </section>
 
-    <section id="debtors" class="page hidden">
-      <h1>Qarzdorlar ro'yxati</h1>
+    <section id="teachers" class="page hidden">
+      <div class="top">
+        <h1>O'qituvchilar</h1>
+        <input id="teacherSearch" placeholder="Qidirish..." oninput="renderTeachers()">
+      </div>
+
+      <form id="teacherForm" class="form-card">
+        <input id="tName" placeholder="Ism" required>
+        <input id="tSubject" placeholder="Fan" required>
+        <input id="tPhone" placeholder="Telefon">
+        <button>O'qituvchi qo'shish</button>
+      </form>
+
       <div class="table-card">
         <table>
           <thead>
-            <tr>
-              <th>Ism</th>
-              <th>Familiya</th>
-              <th>Sinf</th>
-              <th>Telefon</th>
-              <th>Qarz summa</th>
-            </tr>
+            <tr><th>Ism</th><th>Fan</th><th>Telefon</th><th>Amal</th></tr>
           </thead>
-          <tbody id="debtorList"></tbody>
+          <tbody id="teacherList"></tbody>
         </table>
       </div>
     </section>
 
-  
-    <section id="settings" class="page hidden">
-      <div class="top">
-        <h1>Admin sozlamalari</h1>
+    <section id="director" class="page hidden">
+      <div class="hero mini">
+        <div>
+          <h1>Direktor paneli</h1>
+          <p>Barcha statistikalar va umumiy nazorat</p>
+        </div>
       </div>
 
+      <div class="cards">
+        <div class="card"><h3>Jami o'quvchilar</h3><b id="dirStudents">0</b></div>
+        <div class="card"><h3>Jami o'qituvchilar</h3><b id="dirTeachers">0</b></div>
+        <div class="card"><h3>Sinflar soni</h3><b id="dirClasses">0</b></div>
+        <div class="card"><h3>Faollik</h3><b id="dirPercent">0%</b></div>
+      </div>
+    </section>
+
+    <section id="reports" class="page hidden">
+      <div class="top">
+        <h1>Hisobotlar</h1>
+        <div class="tools">
+          <button onclick="exportCSV()">Excel eksport</button>
+          <label class="import-btn">Excel import<input type="file" onchange="importCSV(event)" hidden></label>
+          <button onclick="window.print()">PDF hisobot</button>
+        </div>
+      </div>
+      <div class="report-box" id="reportBox"></div>
+    </section>
+
+    <section id="settings" class="page hidden">
+      <h1>Sozlamalar</h1>
       <div class="settings-card">
-        <h2>Login va parolni o'zgartirish</h2>
-
-        <label>Yangi login</label>
-        <input id="newAdminLogin" type="text" placeholder="Yangi login">
-
-        <label>Yangi parol</label>
-        <input id="newAdminPassword" type="password" placeholder="Yangi parol">
-
-        <label>Yangi parolni qayta kiriting</label>
-        <input id="repeatAdminPassword" type="password" placeholder="Parolni takrorlang">
-
-        <button onclick="changeAdminCredentials()">Saqlash</button>
-
-        <p id="settingsMessage"></p>
+        <h2>Tashqi ko'rinish</h2>
+        <button onclick="setTheme('light')">Light Mode</button>
+        <button onclick="setTheme('dark')">Dark Mode</button>
       </div>
     </section>
   </main>
@@ -186,12 +164,3 @@
 <script src="script.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
